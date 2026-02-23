@@ -191,7 +191,7 @@ GET    /api/health                     - Health check
 
 ```
 ┌─────────────┐      ┌──────────┐      ┌─────────┐
-│   API       │─────▶│ Promtail │─────▶│  Loki   │
+│   API       │────▶│ Promtail  │────▶│  Loki   │
 │ (Pino JSON) │      │(Coletor) │      │(Storage)│
 └─────────────┘      └──────────┘      └─────────┘
                                              │
@@ -365,7 +365,7 @@ Implementadas proteções contra vulnerabilidades reais de empresas:
 
 **Antes:**
 ```json
-{ "error": "Something went wrong" }  // ❌ Não padronizado
+{ "error": "Something went wrong" }  // Não padronizado
 ```
 
 **Depois (RFC 7807):**
