@@ -4,7 +4,7 @@
 
 Refatoração massiva implementando práticas enterprise-grade de logging, monitoramento e testes, inspirada em Google, Netflix, Stripe, Amazon, Uber e Airbnb.
 
-**Tipo:** `feature` | **Prioridade:** `alta` | **Status:** `pronto-para-revisão`
+**Tipo:** `release` | **Prioridade:** `alta` | **Status:** `pronto-para-revisão`
 
 ---
 
@@ -336,20 +336,20 @@ Implementadas proteções contra vulnerabilidades reais de empresas:
 <summary><b>Proteções Implementadas</b></summary>
 
 - ✅ **Timing Attack Prevention**
-  - Constant-time comparison
-  - Previne ataques de Slack/GitHub
+  - [x] Constant-time comparison
+  - [x] Previne ataques de Slack/GitHub
   
 - ✅ **Hash Malformado Detection**
-  - Validação de formato bcrypt
-  - Rejeita hashes corrompidos
+  - [x] Validação de formato bcrypt
+  - [x] Rejeita hashes corrompidos
   
 - ✅ **Security Logging**
-  - Logs de tentativas de autenticação
-  - Auditoria completa
+  - [x] Logs de tentativas de autenticação
+  - [x] Auditoria completa
   
 - ✅ **Fail Secure**
-  - Erro retorna `false` (não exception)
-  - Defense in depth
+  - [x] Erro retorna `false` (não exception)
+  - [x] Defense in depth
 </details>
 
 **Padrões Seguidos:**
