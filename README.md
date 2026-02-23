@@ -390,19 +390,19 @@ Implementadas proteções contra vulnerabilidades reais de empresas:
 #### Segurança Automática
 
 - ✅ **Redação de 15+ campos sensíveis:**
-  - `password`, `senha`, `token`, `secret`
-  - `cpf`, `cnpj`, `creditCard`
-  - `apiKey`, `privateKey`, `sessionId`
-  - E mais...
+  - [x] `password`, `senha`, `token`, `secret`
+  - [x] `cpf`, `cnpj`, `creditCard`
+  - [x] `apiKey`, `privateKey`, `sessionId`
+  - [x] E mais...
   
 - ✅ **Sanitização recursiva:**
-  - Objetos nested
-  - Arrays
-  - Query params, headers, body
+  - [x] Objetos nested
+  - [x] Arrays
+  - [x] Query params, headers, body
   
 - ✅ **Proteção contra logs grandes:**
-  - Trunca logs > 10KB
-  - Previne DoS por logging
+  - [x] Trunca logs > 10KB
+  - [x] Previne DoS por logging
 
 #### Observabilidade World-Class
 
