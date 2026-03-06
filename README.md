@@ -1,335 +1,130 @@
-# Release v${{ needs.build.outputs.version }}
-          
-          ---
-          
-          ## Build Information
-          
-          | Atributo | Valor |
-          |----------|-------|
-          | **Versão** | `${{ needs.build.outputs.version }}` |
-          | **Commit SHA** | [`${GITHUB_SHA:0:7}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |
-          | **Branch** | `${{ github.ref_name }}` |
-          | **Build Number** | `#${{ github.run_number }}` |
-          | **Executor** | @${{ github.actor }} |
-          | **Workflow** | [`${{ github.workflow }}`](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
-          | **Data/Hora** | `$(date -u +"%Y-%m-%d %H:%M:%S UTC")` |
-          
-          END_SUMMARY
-          
-          if [ -n "${{ inputs.version-override }}" ]; then
-            echo "| **Estratégia** | Manual Override |" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ inputs.bump-type }}" != "none" ]; then
-            echo "| **Estratégia** | Auto-increment (\`${{ inputs.bump-type }}\`) |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| **Estratégia** | package.json |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          cat >> $GITHUB_STEP_SUMMARY << 'END_SUMMARY'
-          
-          ---
-          
-          ## Docker Images
-          
-          ### Imagens Publicadas
-          
-          ```bash
-          # Versão específica (recomendado para produção)
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:${{ needs.build.outputs.version }}
-          
-          # Latest (desenvolvimento)
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:latest
-          
-          # Homologação
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:homolog
-          
-          # SHA específico
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:sha-${GITHUB_SHA:0:7}
-          
-          # Build number
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:build-${{ github.run_number }}
-          ```
-          
-          ### Tags Disponíveis
-          
-          | Tag | Uso Recomendado | Estabilidade |
-          |-----|----------------|--------------|
-          | `${{ needs.build.outputs.version }}` | Produção | Stable |
-          | `latest` | Desenvolvimento | Rolling |
-          | `homolog` | Homologação | Testing |
-          | `sha-${GITHUB_SHA:0:7}` | Debug | Immutable |
-          | `build-${{ github.run_number }}` | Rastreamento | Immutable |
-          
-          ---
-          
-          ## Quality Gates
-          
-          | Gate | Status | Detalhes |
-          |------|--------|----------|
-          | **Build** | ✅ Passed | TypeScript compilation successful |
-          | **Unit Tests** | ✅ Passed | All unit tests passed |
-          | **E2E Tests** | ✅ Passed | Integration tests validated |
-          | **Security Scan** | ✅ Passed | Trivy vulnerability scan completed |
-          | **Lint** | ✅ Passed | Hadolint Docker analysis |
-          
-          ---
-          
-          ## Test Results
-          
-          ### Testes Unitários
-          - [X] Executados com sucesso
-          - [X] Coverage disponível nos artifacts
-          
-          ### Testes E2E
-          - [X] Todos os cenários validados
-          - [X] Infraestrutura Docker provisionada automaticamente
-          - [X] Testes gerenciam seus próprios dados (sem overhead de seed)
-          
-          ---
-          
-          ## Security & Compliance
-          
-          - Trivy vulnerability scan: **Completed**
-          - SARIF report uploaded to GitHub Security
-          - Docker image signed and verified
-          - No critical vulnerabilities detected
-          
-          ---
-          
-          ## Deployment
-          
-          ### Docker Compose
-          
-          ```yaml
-          version: '3.8'
-          services:
-            api:
-              image: ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:${{ needs.build.outputs.version }}
-              ports:
-                - "3000:3000"
-              environment:
-                NODE_ENV: production
-                DATABASE_URL: postgresql://...
-                MONGO_INITDB_URI: mongodb://...
-                REDIS_URL: redis://...
-          ```
-          
-          ### Kubernetes
-          
-          ```bash
-          kubectl set image deployment/helpme-api \
-            api=${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:${{ needs.build.outputs.version }}
-          ```
-          
-          ---
-          
-          ## Resources
-          
-          - [Documentação da API](https://github.com/${{ github.repository }})
-          - [Docker Hub](https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/helpme-api)
-          - [Swagger/OpenAPI](http://localhost:3000/api-docs)
-          - [Grafana Dashboards](https://github.com/${{ github.repository }}/tree/main/api/painel-analitico/grafana/dashboards)
-          
-          ---
-          
-          ## Next Steps
-          
-          1. **Produção**: Deploy da imagem `${{ needs.build.outputs.version }}` no ambiente de produção
-          2. **Monitoramento**: Verificar métricas no Grafana após deploy
-          3. **Rollback**: Manter imagem anterior disponível para rollback rápido
-          4. **Documentação**: Atualizar changelog com as mudanças desta versão
-          
-          ---
-          
-          <div align="center">
-          
-          ** Pipeline Executada com Sucesso! **
-          
-          [![View Workflow](https://img.shields.io/badge/View-Workflow-blue?style=for-the-badge&logo=github)](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          [![Docker Hub](https://img.shields.io/badge/Docker-Hub-2496ED?style=for-the-badge&logo=docker)](https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/helpme-api)
-          
-          </div>
-          END_SUMMARY
+Summary
 
-  github-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [build, release]
-    if: ${{ inputs.create-tag == true }}
-    environment: homologacao
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Gerar Release Notes
-        id: release_notes
-        run: |
-          VERSION="${{ needs.build.outputs.version }}"
-          
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
-          if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges)
-          else
-            COMMITS=$(git log --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" --no-merges -n 20)
-          fi
-          
-          cat > release_notes.md << 'RELEASE_END'
-          ## Help-Me API vVERSION_PLACEHOLDER
-          
-          Today, we are excited to share the **vVERSION_PLACEHOLDER** stable release
-          
-          **Star this repo** for notifications about new releases, bug fixes & features!
-          
-          ---
-          
-          ## Installation
-          
-          ### Docker (Recommended)
-          
-          ```bash
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:VERSION_PLACEHOLDER
-          
-          docker run -d -p 3000:3000 \
-            -e DATABASE_URL="postgresql://user:pass@localhost:5432/helpme" \
-            -e MONGO_INITDB_URI="mongodb://user:pass@localhost:27017/helpme-mongo" \
-            -e REDIS_URL="redis://localhost:6379" \
-            -e JWT_SECRET="your-secret-here" \
-            -e JWT_REFRESH_SECRET="your-refresh-secret-here" \
-            ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:VERSION_PLACEHOLDER
-          ```
-          
-          ### Docker Compose
-          
-          ```yaml
-          version: '3.8'
-          services:
-            api:
-              image: ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:VERSION_PLACEHOLDER
-              ports:
-                - "3000:3000"
-              environment:
-                NODE_ENV: production
-                DATABASE_URL: postgresql://user:pass@postgres:5432/helpme
-                MONGO_INITDB_URI: mongodb://user:pass@mongodb:27017/helpme-mongo
-                REDIS_URL: redis://redis:6379
-                KAFKA_BROKER_URL: kafka:9093
-                JWT_SECRET: your-secret-here
-                JWT_REFRESH_SECRET: your-refresh-secret-here
-          ```
-          
-          ### Kubernetes
-          
-          ```bash
-          kubectl set image deployment/helpme-api \
-            api=${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:VERSION_PLACEHOLDER
-          ```
-          
-          ---
-          
-          ## What's New
-          
-          RELEASE_END
-          
-          echo "" >> release_notes.md
-          echo "$COMMITS" >> release_notes.md
-          echo "" >> release_notes.md
-          
-          cat >> release_notes.md << 'RELEASE_END'
-          
-          ---
-          
-          ## Technical Details
-          
-          | Attribute | Value |
-          |-----------|-------|
-          | **Version** | `VERSION_PLACEHOLDER` |
-          | **Build** | #${{ github.run_number }} |
-          | **Commit** | [`COMMIT_PLACEHOLDER`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |
-          | **Node.js** | 22.x |
-          | **TypeScript** | 5.9.x |
-          | **Prisma** | 7.x |
-          | **Docker Base** | node:22-alpine |
-          
-          ---
-          
-          ## Quality Metrics
-          
-          - [X] **Build**: Passed
-          - [X] **Unit Tests**: All tests passed
-          - [X] **E2E Tests**: Integration validated
-          - [X] **Security Scan**: No critical vulnerabilities
-          - [X] **Docker Build**: Multi-stage optimized
-          
-          ---
-          
-          ## Docker Images
-          
-          ### Available Tags
-          
-          | Tag | Purpose | Stability |
-          |-----|---------|-----------|
-          | `VERSION_PLACEHOLDER` | Production | Stable |
-          | `latest` | Development | Rolling |
-          | `homolog` | Staging | Testing |
-          | `sha-COMMIT_PLACEHOLDER` | Debug | Immutable |
-          
-          ```bash
-          # Production (recommended)
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:VERSION_PLACEHOLDER
-          
-          # Latest
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:latest
-          
-          # Specific commit
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/helpme-api:sha-COMMIT_PLACEHOLDER
-          ```
-          
-          ---
-          
-          ## Documentation
-          
-          - [API Documentation](https://github.com/${{ github.repository }})
-          - [Swagger/OpenAPI](http://localhost:3000/api-docs)
-          - [Docker Hub](https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/helpme-api)
-          - [Grafana Dashboards](https://github.com/${{ github.repository }}/tree/main/api/painel-analitico/grafana/dashboards)
-          - [Kubernetes Manifests](https://github.com/${{ github.repository }}/tree/main/api/k8s)
-          
-          ---
-          
-          ## Support
-          
-          - [Report a Bug](https://github.com/${{ github.repository }}/issues/new?labels=bug)
-          - [Request a Feature](https://github.com/${{ github.repository }}/issues/new?labels=enhancement)
-          - [Discussions](https://github.com/${{ github.repository }}/discussions)
-          
-          ---
-          
-          ## Full Changelog
-          
-          RELEASE_END
-          
-          if [ -n "$PREVIOUS_TAG" ]; then
-            echo "**[$PREVIOUS_TAG...v$VERSION](${{ github.server_url }}/${{ github.repository }}/compare/$PREVIOUS_TAG...v$VERSION)**" >> release_notes.md
-          else
-            echo "**[Initial Release](https://github.com/${{ github.repository }}/commits/v$VERSION)**" >> release_notes.md
-          fi
-          
-          cat >> release_notes.md << 'RELEASE_END'
-          
-          ---
-          
-          <div align="center">
-          
-          **Made with by the Help-Me Team**
-          
-          [![Docker Pulls](https://img.shields.io/docker/pulls/${{ secrets.DOCKERHUB_USERNAME }}/helpme-api?style=flat-square)](https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/helpme-api)
-          [![GitHub Stars](https://img.shields.io/github/stars/${{ github.repository }}?style=flat-square)](https://github.com/${{ github.repository }}/stargazers)
-          [![License](https://img.shields.io/github/license/${{ github.repository }}?style=flat-square)](https://github.com/${{ github.repository }}/blob/main/LICENSE)
-          
-          </div>
-          RELEASE_END
+Documento de acompanhamento das features implementadas e planejadas.
+
+-----
+
+## Implementação
+
+### 1. Nível dos Técnicos (N1 / N2 / N3)
+
+- [X] Enum `NivelTecnico`: `N1`, `N2`, `N3` — padrão `N1` ao criar técnico
+- [X] Somente **ADMIN** pode alterar o nível de um técnico
+- [X] Regras de atribuição por prioridade:
+
+| Nível | Prioridades permitidas |
+|-------|----------------------|
+| N1 | P4 e P5 |
+| N2 | P2 e P3 |
+| N3 | P1, P2, P3, P4 e P5 (qualquer) |
+
+---
+
+### 2. Prioridade dos Chamados (P1 – P5)
+
+- [X] Enum `PrioridadeChamado`: `P1` a `P5` — padrão `P4`
+
+| Prioridade | Descrição |
+|------------|-----------|
+| P1 | Alta Prioridade |
+| P2 | Urgente |
+| P3 | Urgente |
+| P4 | Baixa Prioridade |
+| P5 | Baixa Prioridade |
+
+- [X] Reclassificação permitida apenas para **ADMIN** e **TECNICO N3**
+
+---
+
+### 3. Filas de Atendimento
+
+Dois endpoints de fila separados por prioridade:
+
+- [X] **Fila Baixa Prioridade** — chamados P4 e P5
+- [X] **Fila Alta Prioridade** — chamados P1, P2 e P3
+
+Qualquer técnico pode transferir um chamado para qualquer outro, sem restrição de nível.
+
+---
+
+### 4. Comentários nos Chamados
+
+- [X] Sem restrição de perfil — `ADMIN`, `TECNICO` e `USUARIO` podem comentar
+- [X] Suporte a comentários internos (visíveis apenas para ADMIN e TECNICO)
+- [X] CRUD completo: criar, listar, editar e remover (soft delete)
+
+---
+
+### 5. Anexos nos Chamados
+
+- [X] Armazenamento no **MinIO**
+- [X] Limite de **5 MB** por arquivo
+- [X] Tipos permitidos: `jpg`, `png`, `gif`, `webp`, `pdf`, `docx`, `xlsx`, `txt`, `csv`
+- [X] Sem restrição de perfil para envio e download
+- [X] Download via URL assinada (válida por 10 minutos)
+
+---
+
+### 6. Listagem de Chamados
+
+Endpoint `GET /api/chamados` com:
+
+- [X] Paginação (`pagina`, `limite`)
+- [X] Busca textual por OS, descrição, nome e email do usuário
+- [X] Filtros: `status`, `prioridade`, `tecnicoId`, `usuarioId`, `setor`, `servico`, `semTecnico`, `dataInicio`, `dataFim`
+- [X] Ordenação por: `geradoEm`, `atualizadoEm`, `prioridade`, `status`, `OS`
+- [X] Escopo automático por perfil: USUARIO vê apenas seus chamados, TECNICO vê apenas os atribuídos a ele
+
+---
+
+### 7. Notificações em Tempo Real
+
+Arquitetura Kafka producer/consumer com Socket.IO:
+
+```
+Evento                     Producer                       Consumer
+──────────────────────     ─────────────────────────      ──────────────────────────
+POST /abertura         →   publicarChamadoAberto       →  salvarNotificacoes (MongoDB)
+PATCH /:id/status      →   publicarChamadoAtribuido    →  enviarEmails (Nodemailer)
+PATCH /:id/transferir  →   publicarChamadoTransferido  →  emitirSocket (Socket.IO)
+PATCH /:id/reabrir     →   publicarChamadoReaberto
+PATCH /:id/prioridade  →   publicarPrioridadeAlterada
+SLA Job (30min)        →   publicarSLAVencendo
+```
+
+Endpoints da API de notificações:
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/notificacoes` | Lista com paginação + contador de não lidas |
+| `PATCH` | `/api/notificacoes/:id/lida` | Marca como lida |
+| `PATCH` | `/api/notificacoes/marcar-todas-lidas` | Marca todas como lidas |
+| `DELETE` | `/api/notificacoes/:id` | Remove notificação |
+
+---
+
+## Planejadas
+
+### Dashboard / Relatórios
+
+Métricas de chamados por status, prioridade e técnico, persistidas no **InfluxDB** e visualizadas no **Grafana**.
+
+**Seção: Chamados por Prioridade**
+- [X] Gauges P1 a P5 com thresholds de alerta (P1 fica vermelho a partir de 3 chamados abertos)
+- [X] Gráfico de barras empilhadas com evolução por prioridade ao longo do tempo
+
+**Seção: Desempenho por Técnico**
+- [X] Tabela com: Técnico, Nível (N1/N2/N3 coloridos), Total, Resolvidos, Em Atendimento, Aguardando, Tempo Médio (h), SLA (%) com gradiente de cor
+- [X] Gráfico de barras comparativo entre técnicos
+- [X]  Donut de distribuição por nível (N1 / N2 / N3)
+
+**Seção: Tabela de Detalhamento**
+- [X] Coluna Prioridade com cor (P1 vermelho → P5 azul)
+- [X] Coluna Nível do técnico responsável
+- [X] Ordenação por prioridade + tempo de abertura
+
+**Filtros globais do dashboard**
+- [X] Filtro por Prioridade (P1–P5)
+- [X] Fila Alta vs Fila Baixa — resumo visual comparativo
+- [X] SLA por prioridade (P1 com SLA menor que P4)
+- [X] Nível do técnico (N1/N2/N3) nos filtros de desempenho
