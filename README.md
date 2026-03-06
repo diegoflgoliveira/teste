@@ -78,6 +78,24 @@ Endpoint `GET /api/chamados` com suporte completo a filtros, paginação e orden
 - [x] Ordenação por: `geradoEm`, `atualizadoEm`, `prioridade`, `status`, `OS`
 - [x] Escopo automático: USUARIO vê apenas seus chamados, TECNICO vê apenas os atribuídos a ele
 
+**Filtros disponíveis:**
+
+| Parâmetro                | Exemplo                 | Quem pode usar  |
+|--------------------------|-------------------------|-----------------|
+| `status`                 | `ABERTO,EM_ATENDIMENTO` | todos           |
+| `prioridade`             | `P1,P2`                 | todos           |
+| `busca`                  | `INC0001` ou `maria`    | todos           |
+| `servico`                | `Suporte`               | todos           |
+| `dataInicio` / `dataFim` | `2026-01-01`            | todos           |
+| `tecnicoId`              | `cuid...`               | ADMIN           |
+| `usuarioId`              | `cuid...`               | ADMIN           |
+| `setor`                  | `FINANCEIRO`            | ADMIN, TECNICO  |
+| `semTecnico`             | `true`                  | ADMIN, TECNICO  |
+| `ordenarPor`             | `prioridade`            | todos           |
+| `ordem`                  | `asc` / `desc`          | todos           |
+| `pagina`                 | `1`                     | todos           |
+| `limite`                 | `20` (máx `100`)        | todos           |
+
 ---
 
 ## Notificações em Tempo Real
@@ -97,12 +115,204 @@ SLA Job (30min)            publicarSLAVencendo
 
 **Endpoints da API de notificações:**
 
-| Método  | Rota                                    | Descrição                              |
-|---------|-----------------------------------------|----------------------------------------|
-| `GET`   | `/api/notificacoes`                     | Lista com paginação + contador de não lidas |
-| `PATCH` | `/api/notificacoes/:id/lida`            | Marca como lida                        |
-| `PATCH` | `/api/notificacoes/marcar-todas-lidas`  | Marca todas como lidas                 |
-| `DELETE`| `/api/notificacoes/:id`                 | Remove notificação                     |
+| Método   | Rota                                   | Descrição                                   |
+|----------|----------------------------------------|---------------------------------------------|
+| `GET`    | `/api/notificacoes`                    | Lista com paginação + contador de não lidas |
+| `PATCH`  | `/api/notificacoes/:id/lida`           | Marca como lida                             |
+| `PATCH`  | `/api/notificacoes/marcar-todas-lidas` | Marca todas como lidas                      |
+| `DELETE` | `/api/notificacoes/:id`                | Remove notificação                          |
+
+---
+
+## Exemplos de Uso
+
+### LISTAGEM
+
+```
+GET /api/chamados?pagina=1&limite=10&status=ABERTO&prioridade=P1,P2&ordenarPor=prioridade&ordem=asc
+GET /api/chamados?busca=INC0001
+GET /api/chamados?semTecnico=true&setor=FINANCEIRO
+GET /api/chamados?dataInicio=2026-01-01&dataFim=2026-01-31
+```
+
+---
+
+### ABERTURA
+
+```
+POST /api/chamados/abertura-chamado
+Content-Type: multipart/form-data
+
+descricao: "Computador não está ligando após queda de energia"
+servico: "Suporte de Hardware"
+arquivos: [foto.jpg]  (opcional)
+```
+
+---
+
+### EDITAR CHAMADO
+
+```
+PATCH /api/chamados/:id
+Content-Type: multipart/form-data
+
+descricao: "Computador não liga, já verifiquei a tomada e o cabo"
+```
+
+---
+
+### ATUALIZAR STATUS
+
+```
+PATCH /api/chamados/:id/status
+Content-Type: application/json
+
+{ "status": "EM_ATENDIMENTO" }
+
+{ "status": "ENCERRADO", "descricaoEncerramento": "Problema resolvido, cabo estava danificado" }
+
+{ "status": "CANCELADO" }
+```
+
+---
+
+### ALTERAR PRIORIDADE
+
+```
+PATCH /api/chamados/:id/prioridade
+Content-Type: application/json
+
+{ "prioridade": "P1", "motivo": "Servidor de produção fora do ar" }
+```
+
+---
+
+### TRANSFERIR
+
+```
+PATCH /api/chamados/:id/transferir
+Content-Type: application/json
+
+{
+  "tecnicoNovoId": "cuid...",
+  "motivo": "Chamado requer nível N3, fora da minha alçada"
+}
+```
+
+---
+
+### REABRIR
+
+```
+PATCH /api/chamados/:id/reabrir-chamado
+Content-Type: application/json
+
+{ "atualizacaoDescricao": "Problema voltou a ocorrer no mesmo equipamento" }
+```
+
+---
+
+### CANCELAR
+
+```
+PATCH /api/chamados/:id/cancelar-chamado
+Content-Type: application/json
+
+{ "descricaoEncerramento": "Usuário resolveu o problema por conta própria" }
+```
+
+---
+
+### HISTÓRICO
+
+```
+GET /api/chamados/:id/historico
+```
+
+---
+
+### TRANSFERÊNCIAS
+
+```
+GET /api/chamados/:id/transferencias
+```
+
+---
+
+### DELETE (soft)
+
+```
+DELETE /api/chamados/:id
+```
+
+### DELETE permanente
+
+```
+DELETE /api/chamados/:id?permanente=true
+```
+
+---
+
+### ANEXOS — upload
+
+```
+POST /api/chamados/:id/anexos
+Content-Type: multipart/form-data
+
+arquivos: [print_erro.png, log.txt]
+```
+
+### ANEXOS — listar
+
+```
+GET /api/chamados/:id/anexos
+```
+
+### ANEXOS — download
+
+```
+GET /api/chamados/:id/anexos/:anexoId/download
+```
+
+### ANEXOS — remover
+
+```
+DELETE /api/chamados/:id/anexos/:anexoId
+```
+
+---
+
+### COMENTÁRIOS — criar
+
+```
+POST /api/chamados/:id/comentarios
+Content-Type: application/json
+
+{ "comentario": "Já verificamos o equipamento, aguardando peça de reposição" }
+
+{ "comentario": "Nota interna: cliente é reincidente", "visibilidadeInterna": true }
+```
+
+### COMENTÁRIOS — listar
+
+```
+GET /api/chamados/:id/comentarios
+```
+
+### COMENTÁRIOS — editar
+
+```
+PUT /api/chamados/:id/comentarios/:comentarioId
+Content-Type: application/json
+
+{ "comentario": "Peça chegou, iniciando reparo agora" }
+```
+
+### COMENTÁRIOS — remover
+
+```
+DELETE /api/chamados/:id/comentarios/:comentarioId
+```
 
 ---
 
